@@ -46,7 +46,7 @@ def read_file(file_path):
 
                 if skill_name not in geq_skills_to_contribs:
                     geq_skills_to_contribs[skill_name] = [[] for _ in range(101)]
-                for lvl in range(1, skill_level + 1):
+                for lvl in range(0, skill_level + 1):
                     geq_skills_to_contribs[skill_name][lvl].append(name)
 
 
@@ -96,40 +96,71 @@ def simulation(projects):
 
     for contrib_name in contributors:
         available[contrib_name] = 0
-    for proj in projects:
-        curr_contributors = []
-        failed = False
-        for role in projects[proj].roles:
-            role_name = role[0]
-            lvl = role[1]
-            found = False
-            contrib_name = min([x for x in geq_skills_to_contribs[role_name][lvl] if x not in curr_contributors], key=lambda x: available[x], default=None)
-            if contrib_name is not None:
-                curr_contributors.append(contrib_name)
-                # available[contrib_name] += projects[proj].days
-                found = True
-            # for contrib_name in geq_skills_to_contribs[role_name][lvl]:
-                # if available[contrib_name]:
-                #     # projects[proj].contributors.append(contrib_name)
-                #     curr_contributors.append(contrib_name)
-                #     available[contrib_name] += projects[proj].days
-                #     found = True
-                #     break
-            if not found:
-                failed = True
-                break
-        if not failed:
-            # for contrib_name in curr_contributors:
-            #     available[contrib_name] -= projects[proj].days
-        # else:
-            # TODO: add time_check
-            start_day = max([available[contrib_name] for contrib_name in curr_contributors])
-            if start_day + projects[proj].days > projects[proj].score + projects[proj].best_before_day:
-                continue
-            for contrib_name in curr_contributors:
-                available[contrib_name] = start_day + projects[proj].days
-            score += projects[proj].score
-            projects_done.append({proj: curr_contributors})
+
+    project_order = sorted(list(projects.keys()), key=lambda x: projects[x].best_before_day)
+
+    curr_time = 0
+    projects_done_set = set()
+    while curr_time < 500:
+        project_order = [x for x in project_order if x not in projects_done_set]
+        for proj in project_order:
+            curr_contributors = []
+            potential_upgrade = {}
+            failed = False
+            # roles_order = sorted(projects[proj].roles, key=lambda x: x[1], reverse=True)
+
+            # langs with decreased demands because of high skill conributors in proj
+            top_level_by_skill = {}
+            for role in projects[proj].roles:
+                role_name = role[0]
+                lvl = role[1]
+                if role_name in top_level_by_skill:
+                    if top_level_by_skill[role_name] >= lvl:
+                        lvl -= 1
+                found = False
+                contrib_name = min([x for x in geq_skills_to_contribs[role_name][lvl] if x not in curr_contributors], key=lambda x: available[x], default=None)
+                if contrib_name is not None:
+                    curr_contributors.append(contrib_name)
+                    if lvl == contributors[contrib_name].skills[role_name]:
+                        potential_upgrade[contrib_name] = role_name
+                    # available[contrib_name] += projects[proj].days
+                    found = True
+
+                    for sk in contributors[contrib_name].skills:
+                        if sk not in top_level_by_skill:
+                            top_level_by_skill[sk] = contributors[contrib_name].skills[sk]
+                        elif contributors[contrib_name].skills[sk] >= top_level_by_skill[sk]:
+                            top_level_by_skill[sk] = contributors[contrib_name].skills[sk]
+                # for contrib_name in geq_skills_to_contribs[role_name][lvl]:
+                    # if available[contrib_name]:
+                    #     # projects[proj].contributors.append(contrib_name)
+                    #     curr_contributors.append(contrib_name)
+                    #     available[contrib_name] += projects[proj].days
+                    #     found = True
+                    #     break
+                if not found:
+                    failed = True
+                    break
+            if not failed:
+                # for contrib_name in curr_contributors:
+                #     available[contrib_name] -= projects[proj].days
+            # else:
+                # TODO: add time_check
+                start_day = max([available[contrib_name] for contrib_name in curr_contributors])
+                if start_day + projects[proj].days > projects[proj].score + projects[proj].best_before_day:
+                    continue
+                for contrib_name in curr_contributors:
+                    available[contrib_name] = start_day + projects[proj].days
+                for contrib_name in potential_upgrade:
+                    upgraded_skill = potential_upgrade[contrib_name]
+                    contributors[contrib_name].skills[upgraded_skill] += 1
+                    new_level = contributors[contrib_name].skills[potential_upgrade[contrib_name]]
+                    geq_skills_to_contribs[upgraded_skill][new_level].append(contrib_name)
+                    # TODO: не делаю пока в eq_skills_to_contribs
+                score += max(min(projects[proj].score + projects[proj].best_before_day - (start_day + projects[proj].days), projects[proj].score), 0)
+                projects_done.append({proj: curr_contributors})
+                projects_done_set.add(proj)
+        curr_time += 1
 
     return projects_done, score
 
