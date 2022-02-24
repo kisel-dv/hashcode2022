@@ -16,16 +16,20 @@ class Project:
         self.roles = roles
 
 
-contributors = {}
-projects = {}
-
-# equal lvl for each skill
-eq_skills_to_contribs = {}
-# great or equal lvl for each skill
-geq_skills_to_contribs = {}
+# contributors = {}
+# projects = {}
+#
+# # equal lvl for each skill
+# eq_skills_to_contribs = {}
+# # great or equal lvl for each skill
+# geq_skills_to_contribs = {}
 
 
 def read_file(file_path):
+    contributors = {}
+    projects = {}
+    eq_skills_to_contribs = {}
+    geq_skills_to_contribs = {}
     with open(file_path, 'r') as f:
         # c, p
         n_contributors, n_projects = map(int, f.readline().strip().split(' '))
@@ -38,6 +42,16 @@ def read_file(file_path):
                 skill_level = int(skill_level)
                 curr_skills[skill_name] = skill_level
 
+                if skill_name not in eq_skills_to_contribs:
+                    eq_skills_to_contribs[skill_name] = [set() for _ in range(101)]
+                eq_skills_to_contribs[skill_name][skill_level].add(name)
+
+                if skill_name not in geq_skills_to_contribs:
+                    geq_skills_to_contribs[skill_name] = [set() for _ in range(101)]
+                for lvl in range(1, skill_level + 1):
+                    geq_skills_to_contribs[skill_name][lvl].add(name)
+
+
             contributors[name] = Contributor(curr_skills)
         for i in range(n_projects):
             name, days, score, best_before_day, n_roles = f.readline().strip().split(' ')
@@ -49,11 +63,11 @@ def read_file(file_path):
                 curr_roles[skill_name] = skill_level
             projects[name] = Project(days, score, best_before_day, curr_roles)
 
-    return contributors, projects
+    return contributors, projects, eq_skills_to_contribs, geq_skills_to_contribs
 
 
 file_name = '../input_data/a.txt'
-contributors, projects = read_file(file_name)
+contributors, projects, eq_skills_to_contribs, geq_skills_to_contribs = read_file(file_name)
 
 
 def print_res(output_file):
