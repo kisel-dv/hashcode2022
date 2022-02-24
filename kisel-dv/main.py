@@ -101,7 +101,7 @@ def simulation(projects):
 
     curr_time = 0
     projects_done_set = set()
-    while curr_time < 500:
+    while curr_time < 50:
         project_order = [x for x in project_order if x not in projects_done_set]
         for proj in project_order:
             curr_contributors = []
@@ -118,6 +118,9 @@ def simulation(projects):
                     if top_level_by_skill[role_name] >= lvl:
                         lvl -= 1
                 found = False
+                # contrib_name = min([x for x in eq_skills_to_contribs[role_name][lvl] if x not in curr_contributors],
+                #                    key=lambda x: available[x], default=None)
+                # if contrib_name is None:
                 contrib_name = min([x for x in geq_skills_to_contribs[role_name][lvl] if x not in curr_contributors], key=lambda x: available[x], default=None)
                 if contrib_name is not None:
                     curr_contributors.append(contrib_name)
@@ -156,6 +159,9 @@ def simulation(projects):
                     contributors[contrib_name].skills[upgraded_skill] += 1
                     new_level = contributors[contrib_name].skills[potential_upgrade[contrib_name]]
                     geq_skills_to_contribs[upgraded_skill][new_level].append(contrib_name)
+                    eq_skills_to_contribs[upgraded_skill][new_level].append(contrib_name)
+                    eq_skills_to_contribs[upgraded_skill][new_level-1].remove(contrib_name)
+
                     # TODO: не делаю пока в eq_skills_to_contribs
                 score += max(min(projects[proj].score + projects[proj].best_before_day - (start_day + projects[proj].days), projects[proj].score), 0)
                 projects_done.append({proj: curr_contributors})
@@ -170,11 +176,26 @@ for file in 'abcdef':
     input_file = f'../input_data/{file}.txt'
     contributors, projects, eq_skills_to_contribs, geq_skills_to_contribs = read_file(input_file)
 
-    projects_done, score = simulation(projects)
+    curr_score = 0
+    curr_projects_done = None
+    for i, project_order in enumerate([sorted(list(projects.keys()), key=lambda x: projects[x].best_before_day),
+                          sorted(list(projects.keys()), key=lambda x: projects[x].days),
+                          sorted(list(projects.keys()), key=lambda x: projects[x].best_before_day - projects[x].days, reverse=True),
+                        sorted(list(projects.keys()),
+                                              key=lambda x: len(projects[x].roles)),
+                        [x for x in projects if len(projects[x].roles) < 4],
+                                       sorted([x for x in projects if projects[x].days < 1000]),
+                          projects]):
+        projects_done, score = simulation(projects)
+        print(f'{file}, {i}, {score}')
+        if score > curr_score:
+            curr_score = score
+            curr_projects_done = projects_done
+            print('score_updated')
     total_score += score
     print(f'{file}: {score}')
 
     output_file = f'../output_data/{file}.txt'
-    print_res(output_file, projects_done)
+    print_res(output_file, curr_projects_done)
 
 print(total_score)
