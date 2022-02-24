@@ -101,17 +101,18 @@ def simulation(projects):
 
     curr_time = 0
     projects_done_set = set()
-    while curr_time < 50:
+    while curr_time < 1:
         project_order = [x for x in project_order if x not in projects_done_set]
         for proj in project_order:
             curr_contributors = []
             potential_upgrade = {}
             failed = False
-            # roles_order = sorted(projects[proj].roles, key=lambda x: x[1], reverse=True)
+            roles_order = sorted(projects[proj].roles, key=lambda x: x[1], reverse=True)
 
             # langs with decreased demands because of high skill conributors in proj
             top_level_by_skill = {}
-            for role in projects[proj].roles:
+            # for role in projects[proj].roles:
+            for role in roles_order:
                 role_name = role[0]
                 lvl = role[1]
                 if role_name in top_level_by_skill:
@@ -167,17 +168,16 @@ def simulation(projects):
                 projects_done.append({proj: curr_contributors})
                 projects_done_set.add(proj)
         curr_time += 1
-
+    [print(contributors[x].skills) for x in contributors if x == 'JenZ']
     return projects_done, score
 
 
 total_score = 0
 for file in 'abcdef':
     input_file = f'../input_data/{file}.txt'
-    contributors, projects, eq_skills_to_contribs, geq_skills_to_contribs = read_file(input_file)
-
     curr_score = 0
     curr_projects_done = None
+    contributors, projects, eq_skills_to_contribs, geq_skills_to_contribs = read_file(input_file)
     for i, project_order in enumerate([sorted(list(projects.keys()), key=lambda x: projects[x].best_before_day),
                           sorted(list(projects.keys()), key=lambda x: projects[x].days),
                           sorted(list(projects.keys()), key=lambda x: projects[x].best_before_day - projects[x].days, reverse=True),
@@ -186,6 +186,7 @@ for file in 'abcdef':
                         [x for x in projects if len(projects[x].roles) < 4],
                                        sorted([x for x in projects if projects[x].days < 1000]),
                           projects]):
+        contributors, projects, eq_skills_to_contribs, geq_skills_to_contribs = read_file(input_file)
         projects_done, score = simulation(projects)
         print(f'{file}, {i}, {score}')
         if score > curr_score:
