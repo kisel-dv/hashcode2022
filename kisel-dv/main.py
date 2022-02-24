@@ -104,17 +104,23 @@ def simulation(projects):
     while curr_time < 1:
         project_order = [x for x in project_order if x not in projects_done_set]
         for proj in project_order:
-            curr_contributors = []
             potential_upgrade = {}
             failed = False
-            roles_order = sorted(projects[proj].roles, key=lambda x: x[1], reverse=True)
+
+            roles_order = sorted(list(enumerate(projects[proj].roles)), key=lambda x: x[1][1], reverse=True)
+            # curr_contributors = []
+            curr_contributors = [None for _ in roles_order]
 
             # langs with decreased demands because of high skill conributors in proj
             top_level_by_skill = {}
             # for role in projects[proj].roles:
+            #     role_name = role[0]
+            #     lvl = role[1]
             for role in roles_order:
-                role_name = role[0]
-                lvl = role[1]
+                role_name = role[1][0]
+                lvl = role[1][1]
+                order_place = role[0]
+
                 if role_name in top_level_by_skill:
                     if top_level_by_skill[role_name] >= lvl:
                         lvl -= 1
@@ -123,8 +129,11 @@ def simulation(projects):
                 #                    key=lambda x: available[x], default=None)
                 # if contrib_name is None:
                 contrib_name = min([x for x in geq_skills_to_contribs[role_name][lvl] if x not in curr_contributors], key=lambda x: available[x], default=None)
+
                 if contrib_name is not None:
-                    curr_contributors.append(contrib_name)
+                    # curr_contributors.append(contrib_name)
+                    curr_contributors[order_place] = contrib_name
+
                     if lvl == contributors[contrib_name].skills[role_name]:
                         potential_upgrade[contrib_name] = role_name
                     # available[contrib_name] += projects[proj].days
@@ -168,7 +177,7 @@ def simulation(projects):
                 projects_done.append({proj: curr_contributors})
                 projects_done_set.add(proj)
         curr_time += 1
-    [print(contributors[x].skills) for x in contributors if x == 'JenZ']
+    [print(contributors[x].skills) for x in contributors if x == 'FionaN']
     return projects_done, score
 
 
@@ -186,7 +195,7 @@ for file in 'abcdef':
                         [x for x in projects if len(projects[x].roles) < 4],
                                        sorted([x for x in projects if projects[x].days < 1000]),
                           projects]):
-        contributors, projects, eq_skills_to_contribs, geq_skills_to_contribs = read_file(input_file)
+        contributors, _, eq_skills_to_contribs, geq_skills_to_contribs = read_file(input_file)
         projects_done, score = simulation(projects)
         print(f'{file}, {i}, {score}')
         if score > curr_score:
