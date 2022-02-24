@@ -1,7 +1,5 @@
 # input
 
-files = [f'../input_data/{x}.txt' for x in 'abcdef']
-
 
 class Contributor:
     def __init__(self, skills):
@@ -43,32 +41,109 @@ def read_file(file_path):
                 curr_skills[skill_name] = skill_level
 
                 if skill_name not in eq_skills_to_contribs:
-                    eq_skills_to_contribs[skill_name] = [set() for _ in range(101)]
-                eq_skills_to_contribs[skill_name][skill_level].add(name)
+                    eq_skills_to_contribs[skill_name] = [[] for _ in range(101)]
+                eq_skills_to_contribs[skill_name][skill_level].append(name)
 
                 if skill_name not in geq_skills_to_contribs:
-                    geq_skills_to_contribs[skill_name] = [set() for _ in range(101)]
+                    geq_skills_to_contribs[skill_name] = [[] for _ in range(101)]
                 for lvl in range(1, skill_level + 1):
-                    geq_skills_to_contribs[skill_name][lvl].add(name)
+                    geq_skills_to_contribs[skill_name][lvl].append(name)
 
 
             contributors[name] = Contributor(curr_skills)
         for i in range(n_projects):
             name, days, score, best_before_day, n_roles = f.readline().strip().split(' ')
             days, score, best_before_day, n_roles = int(days), int(score), int(best_before_day), int(n_roles)
-            curr_roles = {}
+            curr_roles = []
             for j in range(n_roles):
                 skill_name, skill_level = f.readline().strip().split(' ')
                 skill_level = int(skill_level)
-                curr_roles[skill_name] = skill_level
+                curr_roles.append((skill_name, skill_level))
             projects[name] = Project(days, score, best_before_day, curr_roles)
 
     return contributors, projects, eq_skills_to_contribs, geq_skills_to_contribs
 
 
-file_name = '../input_data/a.txt'
-contributors, projects, eq_skills_to_contribs, geq_skills_to_contribs = read_file(file_name)
+# TODO: add time_check
+def get_score(projects, print=False):
+    score = 0
+    for proj in projects:
+        if projects[proj].contributors:  # equal that the project is done
+            score += projects[proj].score
+    return score
 
 
-def print_res(output_file):
-    pass
+def print_res(file_name, projects_done):
+    with open(file_name, 'w') as f:
+        f.write(f'{len(projects_done)}\n')
+        for proj in projects_done:
+            f.write(f'{list(proj.keys())[0]}\n')
+            f.write(f'{" ".join(list(proj.values())[0])}\n')
+
+
+def simulation(projects):
+    # curr_time = 0
+    # available = {}
+    # while True:
+    #     for proj in projects:
+    #         for role in proj.roles:
+    #
+    #     curr_time += 1
+
+    available = {}
+    projects_done = []
+    score = 0
+
+    for contrib_name in contributors:
+        available[contrib_name] = 0
+    for proj in projects:
+        curr_contributors = []
+        failed = False
+        for role in projects[proj].roles:
+            role_name = role[0]
+            lvl = role[1]
+            found = False
+            contrib_name = min([x for x in geq_skills_to_contribs[role_name][lvl] if x not in curr_contributors], key=lambda x: available[x], default=None)
+            if contrib_name is not None:
+                curr_contributors.append(contrib_name)
+                # available[contrib_name] += projects[proj].days
+                found = True
+            # for contrib_name in geq_skills_to_contribs[role_name][lvl]:
+                # if available[contrib_name]:
+                #     # projects[proj].contributors.append(contrib_name)
+                #     curr_contributors.append(contrib_name)
+                #     available[contrib_name] += projects[proj].days
+                #     found = True
+                #     break
+            if not found:
+                failed = True
+                break
+        if not failed:
+            # for contrib_name in curr_contributors:
+            #     available[contrib_name] -= projects[proj].days
+        # else:
+            # TODO: add time_check
+            start_day = max([available[contrib_name] for contrib_name in curr_contributors])
+            if start_day + projects[proj].days > projects[proj].score + projects[proj].best_before_day:
+                continue
+            for contrib_name in curr_contributors:
+                available[contrib_name] = start_day + projects[proj].days
+            score += projects[proj].score
+            projects_done.append({proj: curr_contributors})
+
+    return projects_done, score
+
+
+total_score = 0
+for file in 'abcdef':
+    input_file = f'../input_data/{file}.txt'
+    contributors, projects, eq_skills_to_contribs, geq_skills_to_contribs = read_file(input_file)
+
+    projects_done, score = simulation(projects)
+    total_score += score
+    print(f'{file}: {score}')
+
+    output_file = f'../output_data/{file}.txt'
+    print_res(output_file, projects_done)
+
+print(total_score)
