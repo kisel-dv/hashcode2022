@@ -128,7 +128,9 @@ def simulation(projects):
                 # contrib_name = min([x for x in eq_skills_to_contribs[role_name][lvl] if x not in curr_contributors],
                 #                    key=lambda x: available[x], default=None)
                 # if contrib_name is None:
-                contrib_name = min([x for x in geq_skills_to_contribs[role_name][lvl] if x not in curr_contributors], key=lambda x: available[x], default=None)
+                # contrib_name = min([x for x in geq_skills_to_contribs[role_name][lvl] if x not in curr_contributors], key=lambda x: available[x], default=None)
+                contrib_name = min([x for x in geq_skills_to_contribs[role_name][lvl] if x not in curr_contributors],
+                                   key=lambda x: sum(contributors[x].skills.values()), default=None)
 
                 if contrib_name is not None:
                     # curr_contributors.append(contrib_name)
@@ -190,11 +192,13 @@ for file in 'abcdef':
     for i, project_order in enumerate([sorted(list(projects.keys()), key=lambda x: projects[x].best_before_day),
                           sorted(list(projects.keys()), key=lambda x: projects[x].days),
                           sorted(list(projects.keys()), key=lambda x: projects[x].best_before_day - projects[x].days, reverse=True),
+
                         sorted(list(projects.keys()),
                                               key=lambda x: len(projects[x].roles)),
                         [x for x in projects if len(projects[x].roles) < 4],
                                        sorted([x for x in projects if projects[x].days < 1000]),
-                          projects]):
+                          projects,
+                                       sorted(list(projects.keys()), key=lambda x: projects[x].score/projects[x].days/len(projects[x].roles), reverse=True)]):
         contributors, _, eq_skills_to_contribs, geq_skills_to_contribs = read_file(input_file)
         projects_done, score = simulation(projects)
         print(f'{file}, {i}, {score}')
